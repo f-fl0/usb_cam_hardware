@@ -36,6 +36,29 @@ protected:
     controller_nh.param("padding_right", padding_right_, 0);
     controller_nh.param("padding_bottom", padding_bottom_, 0);
 
+    std::string rotate_code_str;
+    controller_nh.param("rotate_code", rotate_code_str, "");
+    if(rotate_code_str == "90CW_ROT")
+    {
+      rotate_code_ = cv::ROTATE_90_CLOCKWISE;
+    }
+    else if(rotate_code_str == "90CCW_ROT")
+    {
+      rotate_code_ = cv::ROTATE_90_COUNTERCLOCKWISE;
+    }
+    else if(rotate_code_str == "180_ROT")
+    {
+      rotate_code_ = cv::ROTATE_180;
+    }
+    else
+    {
+      if (rotate_code_str != "")
+      {
+        ROS_WARN("Invalid rotate code: [%s]. No rotation will be applied.", rotate_code_str.c_str());
+      }
+      rotate_code_ = -1;
+    }
+
     // init publisher for decoded images
     publisher_ = image_transport::ImageTransport(controller_nh).advertise("image", 1);
 
@@ -63,12 +86,16 @@ protected:
     }
 
     // pad output image
-    if (padding_left_ != 0 || padding_top_ != 0 ||
-        padding_right_ != 0 || padding_bottom_ != 0)
+    if (padding_left_ != 0 || padding_top_ != 0 || padding_right_ != 0 || padding_bottom_ != 0)
     {
       cv::copyMakeBorder(out.image, out.image,
         padding_top_, padding_bottom_, padding_left_, padding_right_,
         cv::BORDER_CONSTANT, (0, 0, 0));
+    }
+
+    if (rotate_code_ >= 0)
+    {
+      cv::rotate(out.image, out.image, rotate_code_);
     }
     publisher_.publish(out.toImageMsg());
   }
@@ -80,6 +107,7 @@ protected:
 private:
   int height_, width_;
   int padding_top_, padding_right_, padding_bottom_, padding_left_;
+  int rotate_code_;
 
   image_transport::Publisher publisher_;
 };
