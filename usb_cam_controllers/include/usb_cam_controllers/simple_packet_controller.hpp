@@ -41,6 +41,9 @@ public:
     }
     packet_iface_ = hw->getHandle(names.front());
 
+    skip_max_ = std::max(controller_nh.param("skip", /* pub every packet */ 0), 0);
+    skip_cnt_ = skip_max_;
+
     last_stamp_ = ros::Time(0);
 
     // init the child controller
@@ -60,8 +63,16 @@ public:
       return;
     }
 
-    // process the packet by the child controller
-    updateImpl(time, period);
+    // publish the current packet if enough number of previous packets are skipped
+    if (skip_cnt_ >= skip_max_) {
+      // reset skip count
+      skip_cnt_ = 0;
+      // process the packet by the child controller
+      updateImpl(time, period);
+    } else {
+      // increment skip count if the current packet is skipped
+      ++skip_cnt_;
+    }
 
     last_stamp_ = packet_iface_.getStamp();
   }
@@ -83,6 +94,9 @@ protected:
 protected:
   // the primary packet interface accessible by the child controler
   usb_cam_hardware_interface::PacketHandle packet_iface_;
+
+  int skip_max_;
+  int skip_cnt_;
 
 private:
   ros::Time last_stamp_;

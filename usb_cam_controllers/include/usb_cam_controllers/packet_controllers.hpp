@@ -32,9 +32,7 @@ protected:
     width_ = controller_nh.param("image_width", 640);
     height_ = controller_nh.param("image_height", 480);
     encoding_ = controller_nh.param< std::string >("encoding", sensor_msgs::image_encodings::BGR8);
-    skip_max_ = std::max(controller_nh.param("skip", /* pub every packet */ 0), 0);
 
-    skip_cnt_ = skip_max_;
     publisher_ = image_transport::ImageTransport(controller_nh).advertise("image", 1);
 
     return true;
@@ -45,22 +43,13 @@ protected:
   }
 
   virtual void updateImpl(const ros::Time &time, const ros::Duration &period) {
-    // publish the current packet if enough number of previous packets are skipped
-    if (skip_cnt_ >= skip_max_) {
-      // reset skip count
-      skip_cnt_ = 0;
-
-      // publish the packet
-      cv_bridge::CvImage out;
-      out.header.stamp = packet_iface_.getStamp();
-      out.encoding = encoding_;
-      out.image = cv::Mat(height_, width_, CV_8UC(packet_iface_.getLength() / (height_ * width_)),
-                          const_cast< uint8_t * >(packet_iface_.getStartAs< uint8_t >()));
-      publisher_.publish(out.toImageMsg());
-    } else {
-      // increment skip count if the current packet is skipped
-      ++skip_cnt_;
-    }
+    // publish the packet
+    cv_bridge::CvImage out;
+    out.header.stamp = packet_iface_.getStamp();
+    out.encoding = encoding_;
+    out.image = cv::Mat(height_, width_, CV_8UC(packet_iface_.getLength() / (height_ * width_)),
+                        const_cast< uint8_t * >(packet_iface_.getStartAs< uint8_t >()));
+    publisher_.publish(out.toImageMsg());
   }
 
   virtual void stoppingImpl(const ros::Time &time) {
@@ -70,9 +59,7 @@ protected:
 private:
   std::string encoding_;
   int height_, width_;
-  int skip_max_;
 
-  int skip_cnt_;
   image_transport::Publisher publisher_;
 };
 
@@ -99,22 +86,13 @@ protected:
   }
 
   virtual void updateImpl(const ros::Time &time, const ros::Duration &period) {
-    // publish the current packet if enough number of previous packets are skipped
-    if (skip_cnt_ >= skip_max_) {
-      // reset skip count
-      skip_cnt_ = 0;
-
-      // publish the packet
-      const sensor_msgs::CompressedImagePtr msg(new sensor_msgs::CompressedImage());
-      msg->header.stamp = packet_iface_.getStamp();
-      msg->format = format_;
-      msg->data.assign(packet_iface_.getStartAs< uint8_t >(),
-                       packet_iface_.getStartAs< uint8_t >() + packet_iface_.getLength());
-      publisher_.publish(msg);
-    } else {
-      // increment skip count if the current packet is skipped
-      ++skip_cnt_;
-    }
+    // publish the packet
+    const sensor_msgs::CompressedImagePtr msg(new sensor_msgs::CompressedImage());
+    msg->header.stamp = packet_iface_.getStamp();
+    msg->format = format_;
+    msg->data.assign(packet_iface_.getStartAs< uint8_t >(),
+                     packet_iface_.getStartAs< uint8_t >() + packet_iface_.getLength());
+    publisher_.publish(msg);
   }
 
   virtual void stoppingImpl(const ros::Time &time) {
@@ -123,9 +101,7 @@ protected:
 
 private:
   std::string format_;
-  int skip_max_;
 
-  int skip_cnt_;
   ros::Publisher publisher_;
 };
 
