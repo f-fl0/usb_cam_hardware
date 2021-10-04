@@ -124,7 +124,7 @@ public:
         if ((double)fps != fps_new) {
           ROS_WARN("Unsupported capture framerate: %d. Framerate will be set to %f", fps, fps_new);
         } else {
-          ROS_INFO("Framerate set to :%d , %u/%u", fps, timeperframe.denominator, timeperframe.numerator);
+          ROS_INFO("Framerate set to: %d, %u/%u", fps, timeperframe.denominator, timeperframe.numerator);
         }
       }
       time_per_frame =
