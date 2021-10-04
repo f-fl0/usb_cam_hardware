@@ -37,7 +37,7 @@ protected:
     controller_nh.param("padding_bottom", padding_bottom_, 0);
 
     std::string rotate_code_str;
-    controller_nh.param("rotate_code", rotate_code_str, "");
+    controller_nh.param("rotate_code", rotate_code_str, std::string(""));
     if(rotate_code_str == "90CW_ROT")
     {
       rotate_code_ = cv::ROTATE_90_CLOCKWISE;
