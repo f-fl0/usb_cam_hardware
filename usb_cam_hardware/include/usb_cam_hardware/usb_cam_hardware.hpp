@@ -110,12 +110,22 @@ public:
         ROS_ERROR("Cannot get streaming parameters");
         return ros::Duration(-1.);
       }
+      const int fps = param_nh.param<int>("framerate", 30);
       v4l2_fract &timeperframe(streamparm.parm.capture.timeperframe);
       timeperframe.numerator = 1;
-      timeperframe.denominator = param_nh.param("framerate", 30);
+      timeperframe.denominator = fps;
       if (xioctl(fd_, VIDIOC_S_PARM, &streamparm) < 0) {
-        ROS_ERROR("Cannot set framerate");
+        ROS_ERROR("Cannot set capture framerate");
         return ros::Duration(-1.);
+      }
+
+      if (timeperframe.numerator) {
+        const double fps_new = timeperframe.denominator / timeperframe.numerator;
+        if ((double)fps != fps_new) {
+          ROS_WARN("Unsupported capture framerate: %d. Framerate will be set to %f", fps, fps_new);
+        } else {
+          ROS_INFO("Framerate set to :%d , %u/%u", fps, timeperframe.denominator, timeperframe.numerator);
+        }
       }
       time_per_frame =
           ros::Duration(static_cast< double >(timeperframe.numerator) / timeperframe.denominator);
