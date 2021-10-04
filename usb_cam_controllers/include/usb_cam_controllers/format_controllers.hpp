@@ -31,6 +31,10 @@ protected:
                         ros::NodeHandle &controller_nh) {
     width_ = controller_nh.param("image_width", 640);
     height_ = controller_nh.param("image_height", 480);
+    controller_nh.param("padding_left", padding_left_, 0);
+    controller_nh.param("padding_top", padding_top_, 0);
+    controller_nh.param("padding_right", padding_right_, 0);
+    controller_nh.param("padding_bottom", padding_bottom_, 0);
 
     // init publisher for decoded images
     publisher_ = image_transport::ImageTransport(controller_nh).advertise("image", 1);
@@ -58,6 +62,14 @@ protected:
       return;
     }
 
+    // pad output image
+    if (padding_left_ != 0 || padding_top_ != 0 ||
+        padding_right_ != 0 || padding_bottom_ != 0)
+    {
+      cv::copyMakeBorder(out.image, out.image,
+        padding_top_, padding_bottom_, padding_left_, padding_right_,
+        cv::BORDER_CONSTANT, (0, 0, 0));
+    }
     publisher_.publish(out.toImageMsg());
   }
 
@@ -67,6 +79,7 @@ protected:
 
 private:
   int height_, width_;
+  int padding_top_, padding_right_, padding_bottom_, padding_left_;
 
   image_transport::Publisher publisher_;
 };
