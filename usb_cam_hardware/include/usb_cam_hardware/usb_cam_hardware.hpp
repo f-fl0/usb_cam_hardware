@@ -172,6 +172,84 @@ public:
       }
     }
 
+    int exposure, brightness, contrast, saturation, sharpness, focus, white_balance, gain;
+    bool auto_focus, auto_exposure, auto_white_balance;
+    param_nh.param("brightness", brightness, -1); //0-255, -1 "leave alone"
+    param_nh.param("contrast", contrast, -1); //0-255, -1 "leave alone"
+    param_nh.param("saturation", saturation, -1); //0-255, -1 "leave alone"
+    param_nh.param("sharpness", sharpness, -1); //0-255, -1 "leave alone"
+    // enable/disable auto_focus
+    param_nh.param("auto_focus", auto_focus, false);
+    param_nh.param("focus", focus, -1); //0-255, -1 "leave alone"
+    // enable/disable auto_exposure
+    param_nh.param("auto_exposure", auto_exposure, true);
+    param_nh.param("exposure", exposure, 100);
+    param_nh.param("gain", gain, -1); //0-100?, -1 "leave alone"
+    // enable/disable auto white balance temperature
+    param_nh.param("auto_white_balance", auto_white_balance, true);
+    param_nh.param("white_balance", white_balance, 4000);
+
+    // set camera parameters
+    if (brightness >= 0)
+    {
+      set_v4l_parameter("brightness", brightness);
+    }
+
+    if (contrast >= 0)
+    {
+      set_v4l_parameter("contrast", contrast);
+    }
+
+    if (saturation >= 0)
+    {
+      set_v4l_parameter("saturation", saturation);
+    }
+
+    if (sharpness >= 0)
+    {
+      set_v4l_parameter("sharpness", sharpness);
+    }
+
+    if (gain >= 0)
+    {
+      set_v4l_parameter("gain", gain);
+    }
+
+    // check auto white balance
+    if (auto_white_balance)
+    {
+      set_v4l_parameter("white_balance_temperature_auto", 1);
+    }
+    else
+    {
+      set_v4l_parameter("white_balance_temperature_auto", 0);
+      set_v4l_parameter("white_balance_temperature", white_balance);
+    }
+
+    // check auto exposure
+    if (!auto_exposure)
+    {
+      // turn down exposure control (from max of 3)
+      set_v4l_parameter("exposure_auto", 1);
+      // change the exposure level
+      set_v4l_parameter("exposure_absolute", exposure);
+    }
+
+    // check auto focus
+    if (auto_focus)
+    {
+      set_auto_focus(1);
+      set_v4l_parameter("focus_auto", 1);
+    }
+    else
+    {
+      set_v4l_parameter("focus_auto", 0);
+      if (focus >= 0)
+      {
+        set_v4l_parameter("focus_absolute", focus);
+      }
+    }
+
     // start streaming
     {
       for (std::size_t i = 0; i < buffers_.size(); ++i) {
@@ -229,6 +307,47 @@ public:
     }
     else {
       ROS_WARN("usb_cam_node could not run '%s'", cmd.c_str());
+    }
+  }
+
+  // enables/disables auto focus
+  void set_auto_focus(int value)
+  {
+    struct v4l2_queryctrl queryctrl;
+    struct v4l2_ext_control control;
+
+    memset(&queryctrl, 0, sizeof(queryctrl));
+    queryctrl.id = V4L2_CID_FOCUS_AUTO;
+
+    if (-1 == xioctl(fd_, VIDIOC_QUERYCTRL, &queryctrl))
+    {
+      if (errno != EINVAL)
+      {
+        perror("VIDIOC_QUERYCTRL");
+        return;
+      }
+      else
+      {
+        ROS_INFO("V4L2_CID_FOCUS_AUTO is not supported");
+        return;
+      }
+    }
+    else if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED)
+    {
+      ROS_INFO("V4L2_CID_FOCUS_AUTO is not supported");
+      return;
+    }
+    else
+    {
+      memset(&control, 0, sizeof(control));
+      control.id = V4L2_CID_FOCUS_AUTO;
+      control.value = value;
+
+      if (-1 == xioctl(fd_, VIDIOC_S_CTRL, &control))
+      {
+        perror("VIDIOC_S_CTRL");
+        return;
+      }
     }
   }
 
