@@ -45,10 +45,10 @@ public:
 
     // open the device
     {
-      const std::string video_device(param_nh.param< std::string >("video_device", "/dev/video0"));
-      fd_ = open(video_device.c_str(), O_RDWR | O_NONBLOCK);
+      video_device_ = param_nh.param< std::string >("video_device", "/dev/video0");
+      fd_ = open(video_device_.c_str(), O_RDWR | O_NONBLOCK);
       if (fd_ < 0) {
-        ROS_ERROR_STREAM("Cannot open \"" << video_device << "\"");
+        ROS_ERROR_STREAM("Cannot open \"" << video_device_ << "\"");
         return ros::Duration(-1.);
       }
     }
@@ -197,6 +197,41 @@ public:
     return time_per_frame;
   }
 
+  void set_v4l_parameter(const std::string& param, int value)
+  {
+    set_v4l_parameter(param, boost::lexical_cast<std::string>(value));
+  }
+
+  void set_v4l_parameter(const std::string& param, const std::string& value)
+  {
+    // build the command
+    std::stringstream ss;
+    ss << "v4l2-ctl --device=" << video_device_ << " -c " << param << "=" << value << " 2>&1";
+    std::string cmd = ss.str();
+
+    // capture the output
+    std::string output;
+    int buffer_size = 256;
+    char buffer[buffer_size];
+    FILE *stream = popen(cmd.c_str(), "r");
+    if (stream)
+    {
+      while (!feof(stream)) {
+        if (fgets(buffer, buffer_size, stream) != NULL) {
+          output.append(buffer);
+        }
+      }
+      pclose(stream);
+      // any output should be an error
+      if (output.length() > 0) {
+        ROS_WARN("%s", output.c_str());
+      }
+    }
+    else {
+      ROS_WARN("usb_cam_node could not run '%s'", cmd.c_str());
+    }
+  }
+
   virtual void read(const ros::Time &time, const ros::Duration &period) {
     //
     if (packet_.buffer_index >= 0) {
@@ -302,6 +337,7 @@ private:
   };
 
   int fd_;
+  std::string video_device_;
 
   usb_cam_hardware_interface::PacketInterface packet_interface_;
   Packet packet_;
