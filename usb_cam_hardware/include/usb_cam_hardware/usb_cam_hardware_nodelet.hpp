@@ -8,6 +8,8 @@
 #include <ros/node_handle.h>
 #include <ros/time.h>
 #include <ros/timer.h>
+#include <std_msgs/Duration.h>
+#include <std_msgs/Float32.h>
 #include <usb_cam_hardware/usb_cam_hardware.hpp>
 
 #include <boost/make_shared.hpp>
@@ -38,6 +40,9 @@ private:
 
     controllers_ = boost::make_shared< controller_manager::ControllerManager >(hardware_.get(), nh);
 
+    sub_exposure_absolute_ =
+      nh.subscribe("exposure_absolute", 1, &USBCamHardwareNodelet::exposureAbsoluteCallback, this);
+    sub_gamma_ = nh.subscribe("gamma", 1, &USBCamHardwareNodelet::gammaCallback, this);
     update_timer_ = nh.createTimer(time_per_frame, &USBCamHardwareNodelet::update, this);
 
     last_ = ros::Time::now();
@@ -56,8 +61,19 @@ private:
   boost::shared_ptr< USBCamHardware > hardware_;
   boost::shared_ptr< controller_manager::ControllerManager > controllers_;
   ros::Timer update_timer_;
+  ros::Subscriber sub_exposure_absolute_, sub_gamma_;
 
   ros::Time last_;
+
+  void exposureAbsoluteCallback(const std_msgs::Duration& msg)
+  {
+    hardware_->set_exposure_absolute(msg.data.toSec());
+  }
+
+  void gammaCallback(const std_msgs::Float32& msg)
+  {
+    hardware_->set_gamma(msg.data);
+  }
 };
 
 } // namespace usb_cam_hardware

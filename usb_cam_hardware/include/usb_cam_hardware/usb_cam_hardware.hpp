@@ -188,6 +188,9 @@ public:
     // enable/disable auto white balance temperature
     param_nh.param("auto_white_balance", auto_white_balance, true);
     param_nh.param("white_balance", white_balance, 4000);
+    param_nh.param("gamma_default", gamma_default_, 100);
+    param_nh.param("gamma_max", gamma_max_, 200);
+    param_nh.param("gamma_min", gamma_min_, 50);
 
     // set camera parameters
     if (brightness >= 0)
@@ -273,6 +276,23 @@ public:
     }
 
     return time_per_frame;
+  }
+
+  void set_exposure_absolute(const double& num_secs)
+  {
+    // V4L2_CID_EXPOSURE_ABSOLUTE is in 100 microseconds units.
+    // https://linuxtv.org/downloads/v4l-dvb-apis/uapi/v4l/ext-ctrls-camera.html
+    const int exposure_absolute = num_secs * 10000;
+    set_v4l_parameter("exposure_absolute", exposure_absolute);
+  }
+
+  void set_gamma(const float& value)
+  {
+    // Convert real gamma value to device gamma value
+    int gamma = value * gamma_default_;
+    if(gamma > gamma_max_) gamma = gamma_max_;
+    if(gamma < gamma_min_) gamma = gamma_min_;
+    set_v4l_parameter("gamma", gamma);
   }
 
   void set_v4l_parameter(const std::string& param, int value)
@@ -457,6 +477,7 @@ private:
 
   int fd_;
   std::string video_device_;
+  int gamma_default_, gamma_max_, gamma_min_;
 
   usb_cam_hardware_interface::PacketInterface packet_interface_;
   Packet packet_;
