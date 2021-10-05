@@ -295,82 +295,6 @@ public:
     set_v4l_parameter("gamma", gamma);
   }
 
-  void set_v4l_parameter(const std::string& param, int value)
-  {
-    set_v4l_parameter(param, boost::lexical_cast<std::string>(value));
-  }
-
-  void set_v4l_parameter(const std::string& param, const std::string& value)
-  {
-    // build the command
-    std::stringstream ss;
-    ss << "v4l2-ctl --device=" << video_device_ << " -c " << param << "=" << value << " 2>&1";
-    std::string cmd = ss.str();
-
-    // capture the output
-    std::string output;
-    int buffer_size = 256;
-    char buffer[buffer_size];
-    FILE *stream = popen(cmd.c_str(), "r");
-    if (stream)
-    {
-      while (!feof(stream)) {
-        if (fgets(buffer, buffer_size, stream) != NULL) {
-          output.append(buffer);
-        }
-      }
-      pclose(stream);
-      // any output should be an error
-      if (output.length() > 0) {
-        ROS_WARN("%s", output.c_str());
-      }
-    }
-    else {
-      ROS_WARN("usb_cam_node could not run '%s'", cmd.c_str());
-    }
-  }
-
-  // enables/disables auto focus
-  void set_auto_focus(int value)
-  {
-    struct v4l2_queryctrl queryctrl;
-    struct v4l2_ext_control control;
-
-    memset(&queryctrl, 0, sizeof(queryctrl));
-    queryctrl.id = V4L2_CID_FOCUS_AUTO;
-
-    if (-1 == xioctl(fd_, VIDIOC_QUERYCTRL, &queryctrl))
-    {
-      if (errno != EINVAL)
-      {
-        perror("VIDIOC_QUERYCTRL");
-        return;
-      }
-      else
-      {
-        ROS_INFO("V4L2_CID_FOCUS_AUTO is not supported");
-        return;
-      }
-    }
-    else if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED)
-    {
-      ROS_INFO("V4L2_CID_FOCUS_AUTO is not supported");
-      return;
-    }
-    else
-    {
-      memset(&control, 0, sizeof(control));
-      control.id = V4L2_CID_FOCUS_AUTO;
-      control.value = value;
-
-      if (-1 == xioctl(fd_, VIDIOC_S_CTRL, &control))
-      {
-        perror("VIDIOC_S_CTRL");
-        return;
-      }
-    }
-  }
-
   virtual void read(const ros::Time &time, const ros::Duration &period) {
     //
     if (packet_.buffer_index >= 0) {
@@ -461,6 +385,82 @@ private:
       // retry if failed because of temporary signal interruption
     } while (result < 0 && errno == EINTR);
     return result;
+  }
+
+  void set_v4l_parameter(const std::string& param, int value)
+  {
+    set_v4l_parameter(param, boost::lexical_cast<std::string>(value));
+  }
+
+  void set_v4l_parameter(const std::string& param, const std::string& value)
+  {
+    // build the command
+    std::stringstream ss;
+    ss << "v4l2-ctl --device=" << video_device_ << " -c " << param << "=" << value << " 2>&1";
+    std::string cmd = ss.str();
+
+    // capture the output
+    std::string output;
+    int buffer_size = 256;
+    char buffer[buffer_size];
+    FILE *stream = popen(cmd.c_str(), "r");
+    if (stream)
+    {
+      while (!feof(stream)) {
+        if (fgets(buffer, buffer_size, stream) != NULL) {
+          output.append(buffer);
+        }
+      }
+      pclose(stream);
+      // any output should be an error
+      if (output.length() > 0) {
+        ROS_WARN("%s", output.c_str());
+      }
+    }
+    else {
+      ROS_WARN("usb_cam_node could not run '%s'", cmd.c_str());
+    }
+  }
+
+  // enables/disables auto focus
+  void set_auto_focus(int value)
+  {
+    struct v4l2_queryctrl queryctrl;
+    struct v4l2_ext_control control;
+
+    memset(&queryctrl, 0, sizeof(queryctrl));
+    queryctrl.id = V4L2_CID_FOCUS_AUTO;
+
+    if (-1 == xioctl(fd_, VIDIOC_QUERYCTRL, &queryctrl))
+    {
+      if (errno != EINVAL)
+      {
+        perror("VIDIOC_QUERYCTRL");
+        return;
+      }
+      else
+      {
+        ROS_INFO("V4L2_CID_FOCUS_AUTO is not supported");
+        return;
+      }
+    }
+    else if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED)
+    {
+      ROS_INFO("V4L2_CID_FOCUS_AUTO is not supported");
+      return;
+    }
+    else
+    {
+      memset(&control, 0, sizeof(control));
+      control.id = V4L2_CID_FOCUS_AUTO;
+      control.value = value;
+
+      if (-1 == xioctl(fd_, VIDIOC_S_CTRL, &control))
+      {
+        perror("VIDIOC_S_CTRL");
+        return;
+      }
+    }
   }
 
 private:
