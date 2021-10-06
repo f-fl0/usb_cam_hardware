@@ -25,6 +25,10 @@ find_package(OpenCV REQUIRED COMPONENTS
   imgcodecs
 )
 
+## pkg-config libraries
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(avcodec libavcodec REQUIRED)
+pkg_check_modules(swscale libswscale REQUIRED)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -135,6 +139,8 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
   include
+  ${avcodec_INCLUDE_DIRS}
+  ${swscale_LIBRARIES}
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -168,10 +174,9 @@ add_library(
 target_link_libraries(
   usb_cam_controllers
   ${catkin_LIBRARIES}
+  ${avcodec_LIBRARIES}
+  ${swscale_LIBRARIES}
   ${OpenCV_LIBRARIES}
-  avcodec 
-  avutil
-  swscale
 )
 
 #############
