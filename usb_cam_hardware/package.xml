@@ -67,6 +67,7 @@
   <exec_depend>pluginlib</exec_depend>
   <exec_depend>roscpp</exec_depend>
   <exec_depend>usb_cam_hardware_interface</exec_depend>
+  <exec_depend>v4l-utils</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
