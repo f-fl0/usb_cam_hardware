@@ -60,8 +60,6 @@
   <build_export_depend>camera_info_manager</build_export_depend>
   <build_export_depend>controller_interface</build_export_depend>
   <build_export_depend>controller_manager</build_export_depend>
-  <build_export_depend>cv_bridge</build_export_depend>
-  <build_export_depend>ffmpeg</build_export_depend>
   <build_export_depend>image_transport</build_export_depend>
   <build_export_depend>pluginlib</build_export_depend>
   <build_export_depend>roscpp</build_export_depend>
