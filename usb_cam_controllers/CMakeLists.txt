@@ -11,24 +11,12 @@ find_package(catkin REQUIRED COMPONENTS
   camera_info_manager
   controller_interface
   controller_manager
-  cv_bridge
   image_transport
   pluginlib
   roscpp
   sensor_msgs
   usb_cam_hardware_interface
 )
-
-## System dependencies are found with CMake's conventions
-find_package(OpenCV REQUIRED COMPONENTS 
-  core
-  imgcodecs
-)
-
-## pkg-config libraries
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(avcodec libavcodec REQUIRED)
-pkg_check_modules(swscale libswscale REQUIRED)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -122,7 +110,6 @@ catkin_package(
   camera_info_manager
   controller_interface 
   controller_manager 
-  cv_bridge
   image_transport
   pluginlib 
   roscpp 
@@ -139,8 +126,6 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
   include
-  ${avcodec_INCLUDE_DIRS}
-  ${swscale_LIBRARIES}
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -174,9 +159,6 @@ add_library(
 target_link_libraries(
   usb_cam_controllers
   ${catkin_LIBRARIES}
-  ${avcodec_LIBRARIES}
-  ${swscale_LIBRARIES}
-  ${OpenCV_LIBRARIES}
 )
 
 #############
