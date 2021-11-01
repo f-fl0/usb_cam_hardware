@@ -3,7 +3,7 @@
 
 #include "usb_cam_controllers/camera_info_controller.hpp"
 #include "usb_cam_controllers/decoding_controllers.hpp"
-#include "usb_cam_controllers/format_controllers.hpp"
+#include "usb_cam_controllers/image_controllers.hpp"
 #include "usb_cam_controllers/packet_controllers.hpp"
 
 PLUGINLIB_EXPORT_CLASS(usb_cam_controllers::CameraInfoController,
