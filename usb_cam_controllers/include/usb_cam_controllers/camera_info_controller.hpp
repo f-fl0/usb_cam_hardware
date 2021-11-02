@@ -31,10 +31,17 @@ protected:
     std::string camera_name, camera_info_url;
     controller_nh.param< std::string >("camera_name", camera_name, "head_camera");
     controller_nh.param< std::string >("camera_info_url", camera_info_url, "");
-    publisher_ = controller_nh.advertise< sensor_msgs::CameraInfo >("camera_info", 1);
     info_manager_ = boost::make_shared< camera_info_manager::CameraInfoManager >(
         controller_nh, camera_name, camera_info_url);
-
+    if (!info_manager_->isCalibrated()) {
+      info_manager_->setCameraName(camera_name);
+      sensor_msgs::CameraInfo camera_info;
+      camera_info.header.frame_id = frame_id_;
+      camera_info.width = width_;
+      camera_info.height = height_;
+      info_manager_->setCameraInfo(camera_info);
+    }
+    publisher_ = controller_nh.advertise< sensor_msgs::CameraInfo >("camera_info", 1);
     return true;
   }
 
