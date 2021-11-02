@@ -366,12 +366,25 @@ protected:
       return;
     }
 
-    // TODO
     if (rotate_code_ != ROTATE_NONE) {
-
+      sensor_msgs::Image img_rotated;
+      img_rotated.header = img.header;
+      img_rotated.encoding = img.encoding;
+      img_rotated.is_bigendian = img.is_bigendian;
+      if (rotate_code_ == ROTATE_90_CW || rotate_code_ == ROTATE_90_CCW) {
+        img_rotated.width = img.height;
+        img_rotated.height = img.width;
+      } else {
+        img_rotated.width = img.width;
+        img_rotated.height = img.height;
+      }
+      img_rotated.step = img_rotated.width * ch;
+      img_rotated.data.resize(img_rotated.height * img_rotated.step);
+      rotate(img.data.data(), img_rotated.data.data(), img.height, img.width, ch, rotate_code_);
+      publisher_.publish(img_rotated);
+    } else {
+      publisher_.publish(img);
     }
-
-    publisher_.publish(img);
   }
 
 private:
