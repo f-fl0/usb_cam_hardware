@@ -53,8 +53,7 @@ protected:
     msg->header.frame_id = frame_id_;
 
     if (padding_left_ != 0 || padding_top_ != 0 ||
-        padding_right_ != 0 || padding_bottom_ != 0)
-    {
+        padding_right_ != 0 || padding_bottom_ != 0) {
       msg->height += padding_top_ + padding_bottom_;
       msg->width += padding_left_ + padding_right_;
       msg->K[2] += padding_left_;
@@ -62,8 +61,7 @@ protected:
       msg->P[2] += padding_left_;
       msg->P[4 + 2] += padding_top_;
 
-      if (msg->roi.width != 0 && msg->roi.height != 0)
-      {
+      if (msg->roi.width != 0 && msg->roi.height != 0) {
         msg->roi.x_offset += padding_left_;
         msg->roi.y_offset += padding_top_;
       }
@@ -145,9 +143,7 @@ private:
 
     // update the canmera info width and height values
     // as width and height have been swapped.
-    const double tmp_ciw = ci->width;
-    ci->width = ci->height;
-    ci->height = tmp_ciw;
+    std::swap(ci->width, ci->height);
   }
 };
 

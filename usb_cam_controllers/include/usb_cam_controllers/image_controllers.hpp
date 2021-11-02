@@ -242,7 +242,7 @@ static void uyvy2rgb(uint8_t *YUV, int width, int height, uint8_t *RGB,
   int NumPixels = width * height;
   // skip top padding pixels
   int k = (width + pad_left + pad_right) * pad_top * 3;
-  // skip top padding pixels
+  // skip left padding pixels
   k += pad_left * 3;
   int p = 0;
   for (i = 0; i < (NumPixels << 1); i += 4)
@@ -286,7 +286,7 @@ static void yuyv2rgb(uint8_t *YUV, int width, int height, uint8_t *RGB,
   int NumPixels = width * height;
   // skip top padding pixels
   int k = (width + pad_left + pad_right) * pad_top * 3;
-  // skip top padding pixels
+  // skip left padding pixels
   k += pad_left * 3;
   int p = 0;
   for (i = 0; i < (NumPixels << 1); i += 4)
@@ -350,7 +350,7 @@ protected:
     img.height = height_ + padding_top_ + padding_bottom_;
     img.width = width_ + padding_left_ + padding_right_;
     img.step = img.width * ch;
-    img.data.resize(img.width * img.height * ch);
+    img.data.resize(img.height * img.step);
 
     if (*ConversionCode == UYVY2RGB) {
       uyvy2rgb(const_cast< uint8_t * >(packet_iface_.getStartAs< uint8_t >()),
@@ -389,42 +389,27 @@ protected:
 
 private:
 
-  void rotate(const uint8_t *src, uint8_t *dst, const int row, const int col, const int ch, const RotateCode rotate_code)
-  {
-    if (rotate_code == ROTATE_90_CW)
-    {
-      for (int i = 0; i < row; i++)
-      {
-        for (int j = 0; j < col; j++)
-        {
-          for (int c = 0; c < ch; c++)
-          {
+  void rotate(const uint8_t *src, uint8_t *dst, const int row, const int col, const int ch, const RotateCode rotate_code) {
+    if (rotate_code == ROTATE_90_CW) {
+      for (int i = 0; i < row; i++) {
+        for (int j = 0; j < col; j++) {
+          for (int c = 0; c < ch; c++) {
             dst[(row * (j + 1) - 1 - i) * ch + c] = src[(col * i + j) * ch + c];
           }
         }
       }
-    }
-    else if (rotate_code == ROTATE_90_CCW)
-    {
-      for (int i = 0; i < row; i++)
-      {
-        for (int j = 0; j < col; j++)
-        {
-          for (int c = 0; c < ch; c++)
-          {
+    } else if (rotate_code == ROTATE_90_CCW) {
+      for (int i = 0; i < row; i++) {
+        for (int j = 0; j < col; j++) {
+          for (int c = 0; c < ch; c++) {
             dst[(row * (col - 1 - j) + i) * ch + c] = src[(col * i + j) * ch + c];
           }
         }
       }
-    }
-    else if (rotate_code == ROTATE_180)
-    {
-      for (int i = 0; i < row; i++)
-      {
-        for (int j = 0; j < col; j++)
-        {
-          for (int c = 0; c < ch; c++)
-          {
+    } else if (rotate_code == ROTATE_180) {
+      for (int i = 0; i < row; i++) {
+        for (int j = 0; j < col; j++) {
+          for (int c = 0; c < ch; c++) {
             dst[(col * (row - i) - 1 - j) * ch + c] = src[(col * i + j) * ch + c];
           }
         }
