@@ -2,6 +2,7 @@
 #define USB_CAM_CONTROLLERS_IMAGE_CONTROLLERS
 
 #include <string>
+#include <vector>
 
 #include <image_transport/image_transport.h>
 #include <image_transport/publisher.h>
@@ -232,91 +233,84 @@ static void YUV2RGB(const uint8_t y, const uint8_t u, const uint8_t v, uint8_t* 
   *b = CLIPVALUE(b2);
 }
 
-static void uyvy2rgb(uint8_t *YUV, int width, int height, uint8_t *RGB,
-  int pad_left, int pad_top, int pad_right, int pad_bottom)
-{
-  int i, j;
+static std::vector<int> create_index_lookup_table(int width, int height,
+  int pad_left, int pad_top, int pad_right, int pad_bottom, int rotate_code) {
+
+  int i, j, p = 0;
+  int pad_width = width + pad_left + pad_right;
+  int pad_height = height + pad_top + pad_bottom;
+  int row = pad_top, col = pad_left;
+
+  const int num_pixels = width * height;
+  std::vector<int> lk_table(pad_width * pad_height * 2, 0);
+  for (i = 0, j = 0; i < (num_pixels << 1); i += 4, j+=2) {
+    for (int k = 0; k < 2; k++) {
+      if (rotate_code == RotateCode::ROTATE_90_CW) {
+        lk_table[j + k] = (pad_height * (col + 1) - 1 - row) * 3;
+      } else if (rotate_code == RotateCode::ROTATE_90_CCW) {
+        lk_table[j + k] = (pad_height * (pad_width - 1 - col) + row) * 3;
+      } else if (rotate_code == RotateCode::ROTATE_180) {
+        lk_table[j + k] = (pad_width * (pad_height - row) - 1 - col) * 3;
+      } else {
+        lk_table[j + k] = (row * pad_width + col) * 3;
+      }
+      p++;
+      col++;
+      if (p % width == 0) {
+        row++;
+        col = pad_left;
+        p = 0;
+      }
+    }
+  }
+  return lk_table;
+}
+
+static void uyvy2rgb(uint8_t *YUV, int num_pixels, std::vector<int>& lk_table, uint8_t *RGB) {
+  int i, j, k;
   uint8_t y0, y1, u, v;
   uint8_t r, g, b;
-
-  int NumPixels = width * height;
-  // skip top padding pixels
-  int k = (width + pad_left + pad_right) * pad_top * 3;
-  // skip left padding pixels
-  k += pad_left * 3;
-  int p = 0;
-  for (i = 0; i < (NumPixels << 1); i += 4)
-  {
+  for (i = 0, j = 0; i < (num_pixels << 1); i += 4, j+=2) {
     u = (uint8_t)YUV[i + 0];
     y0 = (uint8_t)YUV[i + 1];
     v = (uint8_t)YUV[i + 2];
     y1 = (uint8_t)YUV[i + 3];
 
+    k = lk_table[j];
     YUV2RGB(y0, u, v, &r, &g, &b);
     RGB[k + 0] = r;
     RGB[k + 1] = g;
     RGB[k + 2] = b;
-    p++;
-    k += 3;
-    if (p % width == 0) {
-      k += (pad_left + pad_right) * 3;
-      p = 0;
-    }
 
+    k = lk_table[j+1];
     YUV2RGB(y1, u, v, &r, &g, &b);
     RGB[k + 0] = r;
     RGB[k + 1] = g;
     RGB[k + 2] = b;
-    k += 3;
-    p++;
-    if (p % width == 0) {
-      k += (pad_left + pad_right) * 3;
-      p = 0;
-    }
   }
 }
 
-static void yuyv2rgb(uint8_t *YUV, int width, int height, uint8_t *RGB,
-  int pad_left, int pad_top, int pad_right, int pad_bottom)
-{
-  int i, j;
+static void yuyv2rgb(uint8_t *YUV, int num_pixels, std::vector<int>& lk_table, uint8_t *RGB) {
+  int i, j, k;
   uint8_t y0, y1, u, v;
   uint8_t r, g, b;
-
-  int NumPixels = width * height;
-  // skip top padding pixels
-  int k = (width + pad_left + pad_right) * pad_top * 3;
-  // skip left padding pixels
-  k += pad_left * 3;
-  int p = 0;
-  for (i = 0; i < (NumPixels << 1); i += 4)
-  {
+  for (i = 0, j = 0; i < (num_pixels << 1); i += 4, j+=2) {
     y0 = (uint8_t)YUV[i + 0];
     u = (uint8_t)YUV[i + 1];
     y1 = (uint8_t)YUV[i + 2];
     v = (uint8_t)YUV[i + 3];
 
+    k = lk_table[j];
     YUV2RGB(y0, u, v, &r, &g, &b);
     RGB[k + 0] = r;
     RGB[k + 1] = g;
     RGB[k + 2] = b;
-    p++;
-    k += 3;
-    if (p % width == 0) {
-      k += (pad_left + pad_right) * 3;
-      p = 0;
-    }
 
+    k = lk_table[j+1];
     YUV2RGB(y1, u, v, &r, &g, &b);
     RGB[k + 0] = r;
     RGB[k + 1] = g;
     RGB[k + 2] = b;
-    k += 3;
-    p++;
-    if (p % width == 0) {
-      k += (pad_left + pad_right) * 3;
-      p = 0;
-    }
   }
 }
 
@@ -337,6 +331,10 @@ protected:
       return false;
     }
 
+    index_lk_table_ = create_index_lookup_table(width_, height_,
+      padding_left_, padding_top_, padding_right_, padding_bottom_,
+      rotate_code_);
+
     publisher_ = image_transport::ImageTransport(controller_nh).advertise("image", 1);
 
     return true;
@@ -347,77 +345,34 @@ protected:
     img.header.stamp = packet_iface_.getStamp();
     img.encoding = *DstEncoding;
     const int ch = sensor_msgs::image_encodings::numChannels(img.encoding);
-    img.height = height_ + padding_top_ + padding_bottom_;
     img.width = width_ + padding_left_ + padding_right_;
+    img.height = height_ + padding_top_ + padding_bottom_;
+    if (rotate_code_ == ROTATE_90_CW || rotate_code_ == ROTATE_90_CCW) {
+      std::swap(img.width, img.height);
+    }
     img.step = img.width * ch;
     img.data.resize(img.height * img.step);
 
     if (*ConversionCode == UYVY2RGB) {
       uyvy2rgb(const_cast< uint8_t * >(packet_iface_.getStartAs< uint8_t >()),
-        width_, height_,
-        img.data.data(),
-        padding_left_, padding_top_, padding_right_, padding_bottom_);
+        width_ * height_,
+        index_lk_table_,
+        img.data.data());
     } else if (*ConversionCode == YUYV2RGB) {
       yuyv2rgb(const_cast< uint8_t * >(packet_iface_.getStartAs< uint8_t >()),
-        width_, height_,
-        img.data.data(),
-        padding_left_, padding_top_, padding_right_, padding_bottom_);
+        width_ * height_,
+        index_lk_table_,
+        img.data.data());
     } else {
       return;
     }
 
-    if (rotate_code_ != ROTATE_NONE) {
-      sensor_msgs::Image img_rotated;
-      img_rotated.header = img.header;
-      img_rotated.encoding = img.encoding;
-      img_rotated.is_bigendian = img.is_bigendian;
-      if (rotate_code_ == ROTATE_90_CW || rotate_code_ == ROTATE_90_CCW) {
-        img_rotated.width = img.height;
-        img_rotated.height = img.width;
-      } else {
-        img_rotated.width = img.width;
-        img_rotated.height = img.height;
-      }
-      img_rotated.step = img_rotated.width * ch;
-      img_rotated.data.resize(img_rotated.height * img_rotated.step);
-      rotate(img.data.data(), img_rotated.data.data(), img.height, img.width, ch, rotate_code_);
-      publisher_.publish(img_rotated);
-    } else {
-      publisher_.publish(img);
-    }
+    publisher_.publish(img);
   }
 
 private:
-
-  void rotate(const uint8_t *src, uint8_t *dst, const int row, const int col, const int ch, const RotateCode rotate_code) {
-    if (rotate_code == ROTATE_90_CW) {
-      for (int i = 0; i < row; i++) {
-        for (int j = 0; j < col; j++) {
-          for (int c = 0; c < ch; c++) {
-            dst[(row * (j + 1) - 1 - i) * ch + c] = src[(col * i + j) * ch + c];
-          }
-        }
-      }
-    } else if (rotate_code == ROTATE_90_CCW) {
-      for (int i = 0; i < row; i++) {
-        for (int j = 0; j < col; j++) {
-          for (int c = 0; c < ch; c++) {
-            dst[(row * (col - 1 - j) + i) * ch + c] = src[(col * i + j) * ch + c];
-          }
-        }
-      }
-    } else if (rotate_code == ROTATE_180) {
-      for (int i = 0; i < row; i++) {
-        for (int j = 0; j < col; j++) {
-          for (int c = 0; c < ch; c++) {
-            dst[(col * (row - i) - 1 - j) * ch + c] = src[(col * i + j) * ch + c];
-          }
-        }
-      }
-    }
-  }
-
   image_transport::Publisher publisher_;
+  std::vector<int> index_lk_table_;
 };
 
 typedef ImageController<&UYVY2RGB, &sensor_msgs::image_encodings::RGB8 >

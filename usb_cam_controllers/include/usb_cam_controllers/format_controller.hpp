@@ -13,14 +13,16 @@
 
 namespace usb_cam_controllers {
 
+enum RotateCode { ROTATE_NONE, ROTATE_90_CW, ROTATE_90_CCW, ROTATE_180 };
+
 class FormatController : public SimplePacketController {
 public:
   FormatController() {}
 
   virtual ~FormatController() {}
 
+
 protected:
-  enum RotateCode { ROTATE_NONE, ROTATE_90_CW, ROTATE_90_CCW, ROTATE_180 };
 
   virtual bool initImpl(usb_cam_hardware_interface::PacketInterface *hw, ros::NodeHandle &root_nh,
                         ros::NodeHandle &controller_nh) {
