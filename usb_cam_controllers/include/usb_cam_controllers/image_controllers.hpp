@@ -335,44 +335,44 @@ protected:
       padding_left_, padding_top_, padding_right_, padding_bottom_,
       rotate_code_);
 
+    img_ptr_.reset(new sensor_msgs::Image);
+    img_ptr_->encoding = *DstEncoding;
+    const int ch = sensor_msgs::image_encodings::numChannels(img_ptr_->encoding);
+    img_ptr_->width = width_ + padding_left_ + padding_right_;
+    img_ptr_->height = height_ + padding_top_ + padding_bottom_;
+    if (rotate_code_ == ROTATE_90_CW || rotate_code_ == ROTATE_90_CCW) {
+      std::swap(img_ptr_->width, img_ptr_->height);
+    }
+    img_ptr_->step = img_ptr_->width * ch;
+    img_ptr_->data.resize(img_ptr_->height * img_ptr_->step);
+
     publisher_ = image_transport::ImageTransport(controller_nh).advertise("image", 1);
 
     return true;
   }
 
   virtual void updateImpl(const ros::Time &time, const ros::Duration &period) {
-    sensor_msgs::Image img;
-    img.header.stamp = packet_iface_.getStamp();
-    img.encoding = *DstEncoding;
-    const int ch = sensor_msgs::image_encodings::numChannels(img.encoding);
-    img.width = width_ + padding_left_ + padding_right_;
-    img.height = height_ + padding_top_ + padding_bottom_;
-    if (rotate_code_ == ROTATE_90_CW || rotate_code_ == ROTATE_90_CCW) {
-      std::swap(img.width, img.height);
-    }
-    img.step = img.width * ch;
-    img.data.resize(img.height * img.step);
-
     if (*ConversionCode == UYVY2RGB) {
       uyvy2rgb(const_cast< uint8_t * >(packet_iface_.getStartAs< uint8_t >()),
         width_ * height_,
         index_lk_table_,
-        img.data.data());
+        img_ptr_->data.data());
     } else if (*ConversionCode == YUYV2RGB) {
       yuyv2rgb(const_cast< uint8_t * >(packet_iface_.getStartAs< uint8_t >()),
         width_ * height_,
         index_lk_table_,
-        img.data.data());
+        img_ptr_->data.data());
     } else {
       return;
     }
-
-    publisher_.publish(img);
+    img_ptr_->header.stamp = packet_iface_.getStamp();
+    publisher_.publish(*img_ptr_);
   }
 
 private:
   image_transport::Publisher publisher_;
   std::vector<int> index_lk_table_;
+  sensor_msgs::Image::Ptr img_ptr_;
 };
 
 typedef ImageController<&UYVY2RGB, &sensor_msgs::image_encodings::RGB8 >
