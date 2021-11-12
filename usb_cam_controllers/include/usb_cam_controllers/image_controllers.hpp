@@ -336,6 +336,7 @@ protected:
       rotate_code_);
 
     img_ptr_.reset(new sensor_msgs::Image);
+    img_ptr_->header.frame_id = frame_id_;
     img_ptr_->encoding = *DstEncoding;
     const int ch = sensor_msgs::image_encodings::numChannels(img_ptr_->encoding);
     img_ptr_->width = width_ + padding_left_ + padding_right_;
